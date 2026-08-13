@@ -2,3 +2,5 @@ __pycache__/
 *.pyc
 .env
 reports/eval_dataset.json
+.venv/
+.pytest_cache/

@@ -1,0 +1,11 @@
+# One-click deploy on Render (https://render.com).
+# New > Blueprint > point at this repo. Free tier, no secrets required —
+# the pipeline runs on the mock embedder + extractive generator out of the box.
+services:
+  - type: web
+    name: rag-document-qa
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn rag.app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health

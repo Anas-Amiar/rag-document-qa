@@ -1,8 +1,16 @@
 # RAG Document QA with Citation Verification
 
+[![CI](https://github.com/Anas-Amiar/rag-document-qa/actions/workflows/ci.yml/badge.svg)](https://github.com/Anas-Amiar/rag-document-qa/actions/workflows/ci.yml)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A production-minded RAG pipeline that answers questions from a knowledge base and — the part most RAG demos skip — verifies that every answer is actually grounded in the sources it cited. Answers that don't hold up are routed to a human review queue instead of being silently returned as confident.
 
-In a demo batch of 14 questions (10 answerable, 4 outside the knowledge base), the system answered 9 in-KB questions confidently (64.3%), correctly flagged 3 as low-confidence (including two questions the KB doesn't cover), and cleanly refused 2 completely off-topic questions.
+Ships as a real HTTP service (FastAPI) **and** a pure, unit-tested core. Runs on a mock
+embedder + extractive generator by default, so it needs **no API keys** — clone it and the
+service (or the one-click deploy) is live immediately.
+
+In a **mock-mode** demo batch of 14 questions (10 answerable, 4 outside the knowledge base), the system answered 9 in-KB questions confidently (64.3%), correctly flagged 3 as low-confidence (including two questions the KB doesn't cover), and cleanly refused 2 completely off-topic questions. Reproduce it with `python3 -m rag.dashboard` — no keys, no network.
 
 ## Why this exists
 
@@ -51,11 +59,11 @@ ask("How do I revoke a compromised API key?")
   5. log_failure()     -> if not answered, append to eval dataset
 ```
 
-## Setup
+## Quickstart
 
 ```bash
-git clone https://github.com/Anas-Amiar/Project-5-rag-document-qa.git
-cd "Project 5 - rag-document-qa"
+git clone https://github.com/Anas-Amiar/rag-document-qa.git
+cd rag-document-qa
 pip install -r requirements.txt
 
 python3 -m rag.chunker      # see how documents are split into overlapping chunks
@@ -67,6 +75,46 @@ python3 -m rag.dashboard    # full batch run across 14 questions + dashboard
 ```
 
 Everything runs in **mock mode** by default — no embedding API, no LLM API key, no setup beyond `pip install pydantic`. The bag-of-words embedder and extractive generator are genuine, working implementations (not stubs) so every pipeline stage produces real, meaningful signal.
+
+## Run the API
+
+```bash
+uvicorn rag.app:app --reload     # http://localhost:8000  (interactive docs at /docs)
+```
+
+```bash
+# an in-KB question -> answered, grounded, with the source chunk cited
+curl -s -X POST localhost:8000/v1/ask -H 'content-type: application/json' \
+  -d '{"question":"How much does the Growth plan cost?"}'
+
+# a topic the KB doesn't cover -> low_confidence, is_grounded=false (not a hallucination)
+curl -s -X POST localhost:8000/v1/ask -H 'content-type: application/json' \
+  -d '{"question":"Does Acme support GraphQL queries?"}'
+```
+
+Every response carries its `status` (`answered` / `low_confidence` / `cannot_answer`), the
+cited chunks, and a two-axis `citation_check`. `GET /documents` lists the knowledge base.
+
+## Deploy your own
+
+Runs on the mock embedder + generator with no secrets, so a public demo is one click:
+
+- **Render** — New → Blueprint → point at this repo (`render.yaml` included, free tier).
+- **Docker** — `docker build -t rag-document-qa . && docker run -p 8000:8000 rag-document-qa`
+
+To make it production-grade, swap `embed()` for an embedding API and `generate_answer()`
+for an LLM call — the chunker, retriever, verifier, and feedback loop are unchanged.
+
+## Testing
+
+```bash
+pip install -r requirements-dev.txt
+pytest -q        # 12 tests, deterministic, no network
+```
+
+The tests lock in the honesty properties: in-KB questions come back answered *and* grounded
+with citations, out-of-KB topics are flagged `low_confidence`, and off-topic questions
+return `cannot_answer` with zero citations. CI runs the suite on Python 3.10–3.12.
 
 To use real embeddings and a real LLM:
 1. Replace `embed()` in `rag/embedder.py` with a call to your embedding API.
