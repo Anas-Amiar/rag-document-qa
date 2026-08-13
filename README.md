@@ -4,6 +4,8 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+> **▶ Live demo:** [https://rag-document-qa-2527.onrender.com/docs](https://rag-document-qa-2527.onrender.com/docs) — a running instance on Render's free tier. The first request after a while takes ~50s to wake the service, then it's fast.
+
 A production-minded RAG pipeline that answers questions from a knowledge base and — the part most RAG demos skip — verifies that every answer is actually grounded in the sources it cited. Answers that don't hold up are routed to a human review queue instead of being silently returned as confident.
 
 Ships as a real HTTP service (FastAPI) **and** a pure, unit-tested core. Runs on a mock
